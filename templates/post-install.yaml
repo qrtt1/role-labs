@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ .Release.Name }}-post-install-job"
+  labels:
+    component: {{ .Release.Name }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": "before-hook-creation"
+spec:
+  template:
+    metadata:
+      name: "{{ .Release.Name }}"
+      labels:
+        component: {{ .Release.Name }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ .Release.Name }}-sa
+      containers:
+        - name: webhook-post-install
+          image: "rancher/hyperkube:v1.15.3-rancher1"
+          command:
+            - sh
+            - -c
+            - |
+              kubectl label ns {{ .Release.Namespace }} {{ .Release.Name }}=$(openssl rand -hex 12) --overwrite
+          env:
+          - name: RELEASE_NAMESPACE
+            value: {{ .Release.Namespace }}
+
